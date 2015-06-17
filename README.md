@@ -1,5 +1,5 @@
-# Part of Speech Tagging
-Tool for tagging part-of-speech using the Hidden Markov Model and the Viterbi algorithm.
+# Text Classification
+Script for classifying text documents using the Hidden Markov Model and the Viterbi algorithm.
 
 ## Usage
 Copy the xml corpus files into the root folder named corpus.
