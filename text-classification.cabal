@@ -17,6 +17,7 @@ executable text-classification
   build-depends:       base,
                        directory,
                        containers,
+                       HLearn-algebra,
                        random-shuffle,
                        random,
                        filepath,
