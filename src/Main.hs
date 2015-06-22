@@ -138,33 +138,21 @@ precision testSentences hmm = truePositiveCount / fromIntegral (length result)
     result = zipWith (==) expectedTags bestTagSequences
     truePositiveCount = fromIntegral $ length $ filter (==True) result
 
-
-------------------------------------------------------------------------
---  Train-Test model separation
-------------------------------------------------------------------------
-splitIntoModelAndTest :: [a] -> ([a], [a])
-splitIntoModelAndTest x = (take modelSize x, drop modelSize x)
-   where len = fromIntegral $ length x
-         modelSize = truncate $ len * modelTestRatio
-
-shuffle :: [a] -> IO [a]
-shuffle list = do
-  gen <- newStdGen
-  return $ Shuffler.shuffle' list (length list) gen
-
+readStopwords :: IO [Word]
+readStopwords = lines <$> readFile "stop-words-list.txt"
 
 ------------------------------------------------------------------------
 --  main
 ------------------------------------------------------------------------
 main :: IO ()
 main = do
-  let corpusPath = "corpus/"
+  let trainingPath = "corpus/training"
+  let testPath = "corpus/test"
   files <- readDir corpusPath
-  filePaths <- shuffle $ map (corpusPath++) files
+  filePaths <- map (corpusPath++) files
   contents <- mapM readFile filePaths
   putStrLn "Calculating..."
-  let (model, test) = splitIntoModelAndTest contents
-      modelSentences = concatMap parseXml model
+  let modelSentences = concatMap parseXml model
       testModelSentences = concatMap parseXml test
       hiddenMarkovModel = train modelSentences
   putStr "Precision: "
