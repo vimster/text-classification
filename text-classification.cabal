@@ -18,7 +18,7 @@ executable text-classification
                        directory,
                        containers,
                        --  HLearn-algebra,
-                       HLearn-classification,
+                       HLearn-classification == 1.0.1.1,
                        random-shuffle,
                        random,
                        filepath,
