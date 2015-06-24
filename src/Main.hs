@@ -11,9 +11,6 @@ import           System.Directory        (getCurrentDirectory,
                                           getDirectoryContents)
 import           System.FilePath
 import           System.IO               ()
-import           System.Random           (newStdGen)
-import qualified System.Random.Shuffle   as Shuffler
-import           Text.XML.Light
 
 
 ------------------------------------------------------------------------
