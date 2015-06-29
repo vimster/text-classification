@@ -1,17 +1,12 @@
 module Main where
 
 import           Control.Applicative
-import           Data.Array
-import           Data.List               (maximumBy)
-import           Data.List.Extras.Argmax
-import qualified Data.Map                as M
-import           Data.Maybe
-import           Data.Ord
-import           NLP.Tokenize.String     (tokenize)
-import           System.Directory        (getCurrentDirectory,
-                                          getDirectoryContents)
-import           System.FilePath
-import           System.IO               ()
+import qualified Data.Map            as M
+import           NLP.Tokenize.String (tokenize)
+import           System.Directory    (getCurrentDirectory, getDirectoryContents)
+
+-- import           Data.List.Extras.Argmax
+-- import           Data.Ord
 
 
 ------------------------------------------------------------------------
@@ -22,6 +17,7 @@ import           System.IO               ()
 --  types
 ------------------------------------------------------------------------
 type Word = String
+type Category = String
 type Pr = Double
 type Document = [Word]
 type Frequencies = M.Map (Word, Word) Integer
@@ -39,7 +35,7 @@ data Bayes = Bayes [Word] deriving(Show)
 ------------------------------------------------------------------------
 
 isRegularFile :: FilePath -> Bool
-isRegularFile f = f /= "." && f /= ".." && takeExtension f == ".xml"
+isRegularFile f = f /= "." && f /= ".."
 
 -- | read dir
 readDir :: String -> IO [FilePath]
@@ -47,16 +43,29 @@ readDir path = do
   directory <- getCurrentDirectory
   filter isRegularFile <$> getDirectoryContents (directory ++ "/" ++ path)
 
-readFile :: String -> [Word]
-readFile source = tokenize source
+tokenizeDocument :: String -> [Word]
+tokenizeDocument = tokenize
 
+readCategoryDir :: FilePath -> IO [Document]
+readCategoryDir path = do
+  files <- readDir path
+  documents <- mapM (readFile . fullPath) files
+  return $ map tokenizeDocument documents
+  where fullPath p = path ++ "/" ++ p
+
+
+readModel :: FilePath -> IO (M.Map Category [Document])
+readModel path = undefined --do
+  -- categories <- readDir path
+  -- return $ M.fromList $ map (\ category -> (category, readCategoryDir (path ++ "/" ++ category))) categories
+  -- contents <- mapM readFile filePaths
 
 ------------------------------------------------------------------------
 --  Train
 --  Calculating parameters of Naive Bayes Model
 ------------------------------------------------------------------------
 
-train :: [Document] -> Bayes
+train :: M.Map Category [Document] -> Bayes
 train taggedSentences = undefined
 
 findPr :: (Fractional v, Ord k) => k -> M.Map k v -> v
@@ -77,7 +86,7 @@ precision testDocuments bayes = undefined -- truePositiveCount / fromIntegral (l
   --   truePositiveCount = fromIntegral $ length $ filter (==True) result
 
 readStopwords :: IO [Word]
-readStopwords = lines <$> readFile "stop-words-list.txt"
+readStopwords = lines <$> readFile "stop-word-list.txt"
 
 ------------------------------------------------------------------------
 --  main
@@ -86,13 +95,10 @@ main :: IO ()
 main = do
   let trainingPath = "corpus/training"
   let testPath = "corpus/test"
-  files <- readDir corpusPath
-  filePaths <- map (corpusPath++) files
-  contents <- mapM readFile filePaths
   putStrLn "Calculating..."
-  let modelDocuments = concatMap parseXml model
-      testModelDocuments = concatMap parseXml test
-      bayesModel = train modelDocuments
+  trainingDocuments <- readModel trainingPath
+  testModelDocuments <- readModel testPath
+  let bayesModel = train trainingDocuments
   putStr "Precision: "
   -- print $ precision testModelSentences hiddenMarkovModel
 
