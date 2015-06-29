@@ -17,10 +17,8 @@ executable text-classification
   build-depends:       base,
                        directory,
                        containers,
-                       --  HLearn-algebra,
-                       -- HLearn-classification == 1.0.1.1,
-                       ConstraintKinds,
                        filepath,
+                       tokenize,
                        array,
                        list-extras
 
