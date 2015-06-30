@@ -2,6 +2,8 @@ module Main where
 
 import           Control.Applicative
 import qualified Data.Map            as M
+import qualified Data.Text           as T
+import qualified Data.Text.IO        as TIO
 import           NLP.Tokenize.String (tokenize)
 import           System.Directory    (getCurrentDirectory, getDirectoryContents)
 
@@ -20,10 +22,13 @@ type Word = String
 type Category = String
 type Pr = Double
 type Document = [Word]
+type CategoryDocuments = M.Map Category [Document]
 type Frequencies = M.Map (Word, Word) Integer
 -- type TagTransitionPr = M.Map (Tag, Tag) Pr
 -- type WordLikelihoodPr = M.Map (Word, Tag) Pr
 
+threshold :: Double
+threshold = 0.8
 
 ------------------------------------------------------------------------
 --  Bayes Model
@@ -33,6 +38,9 @@ data Bayes = Bayes [Word] deriving(Show)
 ------------------------------------------------------------------------
 --  IO
 ------------------------------------------------------------------------
+
+readFileStrict :: FilePath -> IO String
+readFileStrict = fmap T.unpack . TIO.readFile
 
 isRegularFile :: FilePath -> Bool
 isRegularFile f = f /= "." && f /= ".."
@@ -46,30 +54,34 @@ readDir path = do
 tokenizeDocument :: String -> [Word]
 tokenizeDocument = tokenize
 
+readStopwords :: IO [Word]
+readStopwords = lines <$> readFile "stop-word-list.txt"
+
 readCategoryDir :: FilePath -> IO [Document]
 readCategoryDir path = do
   files <- readDir path
-  documents <- mapM (readFile . fullPath) files
+  documents <- mapM (readFileStrict . fullPath) files
   return $ map tokenizeDocument documents
   where fullPath p = path ++ "/" ++ p
 
-
-readModel :: FilePath -> IO (M.Map Category [Document])
-readModel path = undefined --do
-  -- categories <- readDir path
-  -- return $ M.fromList $ map (\ category -> (category, readCategoryDir (path ++ "/" ++ category))) categories
-  -- contents <- mapM readFile filePaths
+readModel :: FilePath -> IO CategoryDocuments
+readModel path = do
+  categories <- readDir path
+  M.fromList <$> zip categories <$> mapM (\ c -> readCategoryDir (path ++ "/" ++ c)) categories
 
 ------------------------------------------------------------------------
 --  Train
 --  Calculating parameters of Naive Bayes Model
 ------------------------------------------------------------------------
 
-train :: M.Map Category [Document] -> Bayes
+train :: CategoryDocuments -> Bayes
 train taggedSentences = undefined
 
 findPr :: (Fractional v, Ord k) => k -> M.Map k v -> v
 findPr = M.findWithDefault 0.00001
+
+count :: (a -> Bool) -> [a] -> Int
+count predicate = length . filter predicate
 
 
 ------------------------------------------------------------------------
@@ -85,8 +97,6 @@ precision testDocuments bayes = undefined -- truePositiveCount / fromIntegral (l
   --   result = zipWith (==) expectedTags bestTagSequences
   --   truePositiveCount = fromIntegral $ length $ filter (==True) result
 
-readStopwords :: IO [Word]
-readStopwords = lines <$> readFile "stop-word-list.txt"
 
 ------------------------------------------------------------------------
 --  main
