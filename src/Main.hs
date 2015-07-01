@@ -25,6 +25,7 @@ type Pr = Double
 type Document = [Word]
 type Vocabulary = [Word]
 type CategoryDocuments = M.Map Category [Document]
+type CategoryPr = M.Map Category Double
 type Frequencies = M.Map (Word, Word) Integer
 -- type TagTransitionPr = M.Map (Tag, Tag) Pr
 -- type WordLikelihoodPr = M.Map (Word, Tag) Pr
@@ -35,7 +36,7 @@ threshold = 0.8
 ------------------------------------------------------------------------
 --  Bayes Model
 ------------------------------------------------------------------------
-data Bayes = Bayes Vocabulary deriving(Show)
+data Bayes = Bayes Vocabulary CategoryPr (M.Map Category Int) deriving(Show)
 
 ------------------------------------------------------------------------
 --  IO
@@ -77,8 +78,12 @@ readModel path = do
 ------------------------------------------------------------------------
 
 train :: CategoryDocuments -> Bayes
-train categoryDocuments = Bayes vocabulary
-  where vocabulary = unique $ concat $ allDocuments categoryDocuments
+train categoryDocuments = Bayes vocabulary categoryPr categoryWords
+  where documents = allDocuments categoryDocuments
+        vocabulary = unique $ concat documents
+        totalDocs = fromIntegral $ length documents
+        categoryPr = M.map (\ docs -> fromIntegral (length docs) / totalDocs) categoryDocuments
+        categoryWords = M.map documentLength categoryDocuments
 
 findPr :: (Fractional v, Ord k) => k -> M.Map k v -> v
 findPr = M.findWithDefault 0.00001
@@ -94,6 +99,12 @@ unique = nub
 
 allDocuments :: CategoryDocuments -> [Document]
 allDocuments = M.fold (flip (++)) []
+
+documentLength :: [Document] -> Int
+documentLength = length . concat
+
+categories :: Bayes -> [Category]
+categories (Bayes _ categoryPr _) = M.keys categoryPr
 
 
 ------------------------------------------------------------------------
