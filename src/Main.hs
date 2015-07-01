@@ -1,6 +1,7 @@
 module Main where
 
 import           Control.Applicative
+import           Data.List           (nub)
 import qualified Data.Map            as M
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as TIO
@@ -22,6 +23,7 @@ type Word = String
 type Category = String
 type Pr = Double
 type Document = [Word]
+type Vocabulary = [Word]
 type CategoryDocuments = M.Map Category [Document]
 type Frequencies = M.Map (Word, Word) Integer
 -- type TagTransitionPr = M.Map (Tag, Tag) Pr
@@ -33,7 +35,7 @@ threshold = 0.8
 ------------------------------------------------------------------------
 --  Bayes Model
 ------------------------------------------------------------------------
-data Bayes = Bayes [Word] deriving(Show)
+data Bayes = Bayes Vocabulary deriving(Show)
 
 ------------------------------------------------------------------------
 --  IO
@@ -75,13 +77,23 @@ readModel path = do
 ------------------------------------------------------------------------
 
 train :: CategoryDocuments -> Bayes
-train taggedSentences = undefined
+train categoryDocuments = Bayes vocabulary
+  where vocabulary = unique $ concat $ allDocuments categoryDocuments
 
 findPr :: (Fractional v, Ord k) => k -> M.Map k v -> v
 findPr = M.findWithDefault 0.00001
 
 count :: (a -> Bool) -> [a] -> Int
 count predicate = length . filter predicate
+
+countWord :: Word -> [Word] -> Int
+countWord word = count (==word)
+
+unique :: Eq a => [a] -> [a]
+unique = nub
+
+allDocuments :: CategoryDocuments -> [Document]
+allDocuments = M.fold (flip (++)) []
 
 
 ------------------------------------------------------------------------
