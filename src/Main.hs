@@ -26,9 +26,6 @@ type Document = [Word]
 type Vocabulary = [Word]
 type CategoryDocuments = M.Map Category [Document]
 type CategoryPr = M.Map Category Double
-type Frequencies = M.Map (Word, Word) Integer
--- type TagTransitionPr = M.Map (Tag, Tag) Pr
--- type WordLikelihoodPr = M.Map (Word, Tag) Pr
 
 threshold :: Double
 threshold = 0.8
@@ -129,11 +126,20 @@ precision testDocuments bayes = fromIntegral truePositiveCount / fromIntegral te
     truePositiveCount :: Int
     truePositiveCount = 12
 
-scores :: [Category] -> [Document] -> Pr
-scores category documents = undefined
-
 calculateScore :: Category -> Document -> Bayes -> Pr
-calculateScore category document (Bayes _ _ _ _ _) = undefined
+calculateScore category document bayes@(Bayes vocabulary categoryPr _ _) =
+  likelihoodProbability * priorProbability
+  where
+    likelihoodProbability = product $ map (probability bayes category) vocabulary
+    priorProbability = M.findWithDefault 0 category categoryPr
+
+probability :: Bayes -> Category -> Word -> Pr
+probability (Bayes vocabulary _ categoryWords wordCounts) category word =
+  (wordCount + 1) / (documentSize + vocabularySize)
+  where
+    wordCount = fromIntegral $ M.findWithDefault 0 (word, category) wordCounts
+    documentSize = fromIntegral $ M.findWithDefault 0 category categoryWords
+    vocabularySize = fromIntegral $ length vocabulary
 
 
 ------------------------------------------------------------------------
