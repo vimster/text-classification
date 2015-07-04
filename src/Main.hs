@@ -1,10 +1,12 @@
 module Main where
 
 import           Control.Applicative
+import           Data.Char           (toLower)
 import           Data.List           (nub)
 import qualified Data.Map            as M
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as TIO
+-- import           Debug.Trace
 import           NLP.Tokenize.String (tokenize)
 import           System.Directory    (getCurrentDirectory, getDirectoryContents)
 
@@ -20,7 +22,7 @@ type CategoryDocuments = M.Map Category [Document]
 type CategoryPr = M.Map Category Double
 
 threshold :: Double
-threshold = 0.8
+threshold = 1e-200
 
 ------------------------------------------------------------------------
 --  Bayes Model
@@ -43,8 +45,9 @@ readDir path = do
   directory <- getCurrentDirectory
   filter isRegularFile <$> getDirectoryContents (directory ++ "/" ++ path)
 
-tokenizeDocument :: String -> [Word]
-tokenizeDocument = tokenize
+tokenizeDocument :: [Word] -> String -> [Word]
+tokenizeDocument stopwords text = filter (not . flip elem stopwords) $ tokenize lowText
+  where lowText = map toLower text
 
 readStopwords :: IO [Word]
 readStopwords = lines <$> readFile "stop-word-list.txt"
@@ -53,7 +56,8 @@ readCategoryDir :: FilePath -> IO [Document]
 readCategoryDir path = do
   files <- readDir path
   documents <- mapM (readFileStrict . fullPath) files
-  return $ map tokenizeDocument documents
+  stopwords <- readStopwords
+  return $ map (tokenizeDocument stopwords) documents
   where fullPath p = path ++ "/" ++ p
 
 readModel :: FilePath -> IO CategoryDocuments
@@ -120,7 +124,7 @@ calculateScore category document bayes@(Bayes _ categoryPr _ _) =
   likelihoodProbability * priorProbability
   where
     likelihoodProbability = product $ map (probability bayes category) document
-    priorProbability = M.findWithDefault 0 category categoryPr
+    priorProbability =  M.findWithDefault 0 category categoryPr
 
 probability :: Bayes -> Category -> Word -> Pr
 probability (Bayes vocabulary _ categoryWords wordCounts) category word =
