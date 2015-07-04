@@ -8,14 +8,6 @@ import qualified Data.Text.IO        as TIO
 import           NLP.Tokenize.String (tokenize)
 import           System.Directory    (getCurrentDirectory, getDirectoryContents)
 
--- import           Data.List.Extras.Argmax
--- import           Data.Ord
-
-
-------------------------------------------------------------------------
---  References
-------------------------------------------------------------------------
-
 ------------------------------------------------------------------------
 --  types
 ------------------------------------------------------------------------
@@ -163,7 +155,6 @@ main = do
   trainingDocuments <- readModel trainingPath
   testModelDocuments <- readModel testPath
   let bayesModel = train trainingDocuments
-  print bayesModel
   putStr "Precision: "
   print $ precision testModelDocuments bayesModel
 
