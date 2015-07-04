@@ -1,5 +1,5 @@
 # Text Classification
-Script for classifying text documents using the Hidden Markov Model and the Viterbi algorithm.
+Script for classifying text documents using the Naive Bayes classification.
 
 ## Usage
 Copy the xml corpus files into the root folder named corpus.

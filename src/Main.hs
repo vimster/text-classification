@@ -77,17 +77,22 @@ readModel path = do
 --  Calculating parameters of Naive Bayes Model
 ------------------------------------------------------------------------
 
+
 train :: CategoryDocuments -> Bayes
-train categoryDocuments = Bayes vocabulary categoryPr categoryWords wordCategoryCounts
+train categoryDocuments = Bayes vocabulary categoryPr categoryWords wordCounts
   where documents = allDocuments categoryDocuments
         vocabulary = unique $ concat documents
         totalDocs = fromIntegral $ length documents
         categoryPr = M.map (\ docs -> fromIntegral (length docs) / totalDocs) categoryDocuments
         categoryWords = M.map documentLength categoryDocuments
-        wordCategoryCounts = undefined --M.foldWithKey (\k a b -> M.union b $ wordCategoryCounts k a) M.empty categoryDocuments
 
-findPr :: (Fractional v, Ord k) => k -> M.Map k v -> v
-findPr = M.findWithDefault 0.00001
+        emptyMap :: M.Map (Word, Category) Int
+        emptyMap = M.empty
+
+        wordCounts = M.foldWithKey (\k a b -> M.union b $ wordCategoryCounts k a) emptyMap categoryDocuments
+
+findCount :: (Num v, Ord k) => k -> M.Map k v -> v
+findCount = M.findWithDefault 1
 
 count :: (a -> Bool) -> [a] -> Int
 count predicate = length . filter predicate
@@ -104,8 +109,8 @@ allDocuments = M.fold (flip (++)) []
 documentLength :: [Document] -> Int
 documentLength = length . concat
 
-categories :: Bayes -> [Category]
-categories (Bayes _ categoryPr _ _) = M.keys categoryPr
+categoriesOfBayes :: Bayes -> [Category]
+categoriesOfBayes (Bayes _ categoryPr _ _) = M.keys categoryPr
 
 wordCategoryCounts :: Category -> [Document] -> M.Map (Word, Category) Int
 wordCategoryCounts category documents = foldr (flip (M.insertWith (+)) 1) M.empty joined
@@ -116,14 +121,19 @@ wordCategoryCounts category documents = foldr (flip (M.insertWith (+)) 1) M.empt
 --  Evaluation
 ------------------------------------------------------------------------
 
-precision :: [Document] -> Bayes -> Pr
-precision testDocuments bayes = undefined -- truePositiveCount / fromIntegral (length result)
-  -- where
-  --   sentences = map (map fst) testSentences
-  --   expectedTags = filter (/= "BOS") $ concatMap (map snd) testSentences
-  --   bestTagSequences = concatMap (viterbi hmm) sentences
-  --   result = zipWith (==) expectedTags bestTagSequences
-  --   truePositiveCount = fromIntegral $ length $ filter (==True) result
+precision :: CategoryDocuments -> Bayes -> Pr
+precision testDocuments bayes = fromIntegral truePositiveCount / fromIntegral testDocumentCount
+  where
+    testDocumentCount = M.fold ((+) . length) 0 testDocuments
+    categories = categoriesOfBayes bayes
+    truePositiveCount :: Int
+    truePositiveCount = 12
+
+scores :: [Category] -> [Document] -> Pr
+scores category documents = undefined
+
+calculateScore :: Category -> Document -> Bayes -> Pr
+calculateScore category document (Bayes _ _ _ _ _) = undefined
 
 
 ------------------------------------------------------------------------
