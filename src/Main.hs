@@ -74,7 +74,6 @@ readModel path = do
 --  Calculating parameters of Naive Bayes Model
 ------------------------------------------------------------------------
 
-
 train :: CategoryDocuments -> Bayes
 train categoryDocuments = Bayes vocabulary categoryPr categoryWords wordCounts
   where documents = allDocuments categoryDocuments
@@ -115,22 +114,20 @@ wordCategoryCounts category documents = foldr (flip (M.insertWith (+)) 1) M.empt
 
 
 ------------------------------------------------------------------------
---  Evaluation
+--  Score calculation
 ------------------------------------------------------------------------
 
-precision :: CategoryDocuments -> Bayes -> Pr
-precision testDocuments bayes = fromIntegral truePositiveCount / fromIntegral testDocumentCount
+classifyDocument :: Document -> Bayes -> [Category]
+classifyDocument testDocument bayes =
+  filter (\category -> threshold <= calculateScore category testDocument bayes) categories
   where
-    testDocumentCount = M.fold ((+) . length) 0 testDocuments
     categories = categoriesOfBayes bayes
-    truePositiveCount :: Int
-    truePositiveCount = 12
 
 calculateScore :: Category -> Document -> Bayes -> Pr
-calculateScore category document bayes@(Bayes vocabulary categoryPr _ _) =
+calculateScore category document bayes@(Bayes _ categoryPr _ _) =
   likelihoodProbability * priorProbability
   where
-    likelihoodProbability = product $ map (probability bayes category) vocabulary
+    likelihoodProbability = product $ map (probability bayes category) document
     priorProbability = M.findWithDefault 0 category categoryPr
 
 probability :: Bayes -> Category -> Word -> Pr
@@ -141,6 +138,19 @@ probability (Bayes vocabulary _ categoryWords wordCounts) category word =
     documentSize = fromIntegral $ M.findWithDefault 0 category categoryWords
     vocabularySize = fromIntegral $ length vocabulary
 
+
+------------------------------------------------------------------------
+--  Evaluation
+------------------------------------------------------------------------
+
+precision :: CategoryDocuments -> Bayes -> Pr
+precision testDocuments bayes = fromIntegral truePositiveCount / fromIntegral testDocumentCount
+  where
+    testDocumentCount = M.fold ((+) . length) 0 testDocuments
+    truePositives :: M.Map Category Int
+    truePositives = M.mapWithKey (\category docs -> length $ filter (containsCategory category) docs) testDocuments
+    containsCategory category document = elem category $ classifyDocument document bayes
+    truePositiveCount = M.fold (+) 0 truePositives
 
 ------------------------------------------------------------------------
 --  main
@@ -155,6 +165,6 @@ main = do
   let bayesModel = train trainingDocuments
   print bayesModel
   putStr "Precision: "
-  -- print $ precision testModelSentences hiddenMarkovModel
+  print $ precision testModelDocuments bayesModel
 
 
