@@ -36,7 +36,7 @@ threshold = 0.8
 ------------------------------------------------------------------------
 --  Bayes Model
 ------------------------------------------------------------------------
-data Bayes = Bayes Vocabulary CategoryPr (M.Map Category Int) deriving(Show)
+data Bayes = Bayes Vocabulary CategoryPr (M.Map Category Int) (M.Map (Word, Category) Int) deriving(Show)
 
 ------------------------------------------------------------------------
 --  IO
@@ -78,12 +78,13 @@ readModel path = do
 ------------------------------------------------------------------------
 
 train :: CategoryDocuments -> Bayes
-train categoryDocuments = Bayes vocabulary categoryPr categoryWords
+train categoryDocuments = Bayes vocabulary categoryPr categoryWords wordCategoryCounts
   where documents = allDocuments categoryDocuments
         vocabulary = unique $ concat documents
         totalDocs = fromIntegral $ length documents
         categoryPr = M.map (\ docs -> fromIntegral (length docs) / totalDocs) categoryDocuments
         categoryWords = M.map documentLength categoryDocuments
+        wordCategoryCounts = undefined --M.foldWithKey (\k a b -> M.union b $ wordCategoryCounts k a) M.empty categoryDocuments
 
 findPr :: (Fractional v, Ord k) => k -> M.Map k v -> v
 findPr = M.findWithDefault 0.00001
@@ -104,7 +105,11 @@ documentLength :: [Document] -> Int
 documentLength = length . concat
 
 categories :: Bayes -> [Category]
-categories (Bayes _ categoryPr _) = M.keys categoryPr
+categories (Bayes _ categoryPr _ _) = M.keys categoryPr
+
+wordCategoryCounts :: Category -> [Document] -> M.Map (Word, Category) Int
+wordCategoryCounts category documents = foldr (flip (M.insertWith (+)) 1) M.empty joined
+  where joined = map (\word -> (word, category)) $ concat documents
 
 
 ------------------------------------------------------------------------
@@ -132,6 +137,7 @@ main = do
   trainingDocuments <- readModel trainingPath
   testModelDocuments <- readModel testPath
   let bayesModel = train trainingDocuments
+  print bayesModel
   putStr "Precision: "
   -- print $ precision testModelSentences hiddenMarkovModel
 
